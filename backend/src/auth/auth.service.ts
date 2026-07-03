@@ -198,19 +198,14 @@ export class AuthService {
         const transporter = nodemailer.createTransport({
           host: smtpHost,
           port: smtpPort,
-          secure: isSecure,
+          secure: isSecure, // true for 465, false for other ports
           auth: {
             user: smtpUser,
             pass: smtpPassword,
           },
           tls: {
             rejectUnauthorized: false,
-            ciphers: 'SSLv3', // Force secure legacy compatibility parameters
           },
-          requireTLS: !isSecure, // Require STARTTLS if port is 587
-          connectionTimeout: 15000, 
-          greetingTimeout: 15000,
-          socketTimeout: 20000,
         });
 
         const mailOptions = {
