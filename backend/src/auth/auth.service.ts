@@ -203,7 +203,10 @@ export class AuthService {
             user: smtpUser,
             pass: smtpPassword,
           },
-          // Add timeout settings to prevent infinite hangs
+          // Bypass SSL verification issues on cloud servers
+          tls: {
+            rejectUnauthorized: false,
+          },
           connectionTimeout: 10000, 
           greetingTimeout: 10000,
           socketTimeout: 15000,
