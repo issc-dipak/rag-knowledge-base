@@ -59,10 +59,19 @@ export class DocumentsService {
       throw new BadRequestException(`Unsupported file type: ${file.mimetype}`);
     }
 
-    const workspace = await this.prisma.workspace.findFirst({
-      where: { id: workspaceId, members: { some: { userId } } },
+    // Simplify the membership check to prevent nested query parse bugs in cloud database pools
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId },
     });
-    if (!workspace) throw new ForbiddenException('Workspace not found or access denied');
+    
+    if (!membership) {
+      const isOwner = await this.prisma.workspace.findFirst({
+        where: { id: workspaceId, ownerId: userId },
+      });
+      if (!isOwner) {
+        throw new ForbiddenException('Workspace not found or access denied');
+      }
+    }
 
     // Handle ZIP files
     if (file.mimetype === 'application/zip') {
