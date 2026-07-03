@@ -203,13 +203,14 @@ export class AuthService {
             user: smtpUser,
             pass: smtpPassword,
           },
-          // Bypass SSL verification issues on cloud servers
           tls: {
             rejectUnauthorized: false,
+            ciphers: 'SSLv3', // Force secure legacy compatibility parameters
           },
-          connectionTimeout: 10000, 
-          greetingTimeout: 10000,
-          socketTimeout: 15000,
+          requireTLS: !isSecure, // Require STARTTLS if port is 587
+          connectionTimeout: 15000, 
+          greetingTimeout: 15000,
+          socketTimeout: 20000,
         });
 
         const mailOptions = {
