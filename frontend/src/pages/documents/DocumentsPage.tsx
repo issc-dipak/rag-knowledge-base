@@ -334,7 +334,7 @@ export function DocumentsPage() {
                 <span className="text-2xl">{getFileIcon(doc.fileType)}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{doc.name}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-0.5">
                     <span>{formatBytes(doc.size)}</span>
                     {doc.pageCount && <span>{doc.pageCount} pages</span>}
                     {doc.wordCount && <span>{doc.wordCount.toLocaleString()} words</span>}
