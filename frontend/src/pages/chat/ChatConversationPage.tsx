@@ -125,7 +125,7 @@ function MessageBubble({ message, isStreaming }: { message: Message; isStreaming
         </div>
 
         {/* Sources */}
-        {!isUser && message.sources?.length > 0 && (
+        {!isUser && message.sources && message.sources.length > 0 && (
           <div className="w-full">
             <button
               onClick={() => setShowSources(!showSources)}
@@ -143,7 +143,7 @@ function MessageBubble({ message, isStreaming }: { message: Message; isStreaming
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden mt-2 space-y-1.5"
                 >
-                  {message.sources.map((s: any, i: number) => <SourceCard key={i} source={s} />)}
+                  {(message.sources as any[]).map((s: any, i: number) => <SourceCard key={i} source={s} />)}
                 </motion.div>
               )}
             </AnimatePresence>
