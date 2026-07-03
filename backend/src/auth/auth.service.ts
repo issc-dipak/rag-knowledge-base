@@ -9,6 +9,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import * as nodemailer from 'nodemailer';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
@@ -191,7 +192,6 @@ export class AuthService {
 
     if (smtpHost && smtpUser && smtpPassword) {
       try {
-        const nodemailer = require('nodemailer');
         const transporter = nodemailer.createTransport({
           host: smtpHost,
           port: smtpPort,
