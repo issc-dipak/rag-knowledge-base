@@ -155,19 +155,20 @@ export function AppLayout() {
             {!collapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
           </button>
 
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground',
-                'hover:bg-accent hover:text-accent-foreground transition-all',
-                isActive && 'bg-primary/10 text-primary',
-              )
-            }
-          >
-            <Settings className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Settings</span>}
-          </NavLink>
+          {user?.role && ['ADMIN', 'SUPER_ADMIN'].includes(user.role) && (
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-all',
+                  isActive && 'bg-primary/10 text-primary',
+                )
+              }
+            >
+              <Settings className="w-4 h-4 shrink-0" />
+              {!collapsed && <span>Settings</span>}
+            </NavLink>
+          )}
 
           {/* User profile */}
           <NavLink
