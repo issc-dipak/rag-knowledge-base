@@ -56,12 +56,25 @@ async function bootstrap() {
   // Compression
   app.use(compression());
 
-  // CORS
+  // CORS configuration supporting dynamic Vercel apps and wildcard local dev
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        process.env.FRONTEND_URL,
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ].filter(Boolean);
+      
+      // Allow if it matches allowed origins, local host, or has no origin (like mobile/curl requests)
+      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost') || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow all for public APIs, but filter can be tightened later if needed
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   });
 
   // Global prefix
