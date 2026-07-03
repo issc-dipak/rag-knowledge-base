@@ -192,14 +192,21 @@ export class AuthService {
 
     if (smtpHost && smtpUser && smtpPassword) {
       try {
+        const isSecure = smtpPort === 465;
+        this.logger.log(`Creating SMTP transporter for ${smtpHost}:${smtpPort} (Secure: ${isSecure})`);
+        
         const transporter = nodemailer.createTransport({
           host: smtpHost,
           port: smtpPort,
-          secure: smtpPort === 465,
+          secure: isSecure,
           auth: {
             user: smtpUser,
             pass: smtpPassword,
           },
+          // Add timeout settings to prevent infinite hangs
+          connectionTimeout: 10000, 
+          greetingTimeout: 10000,
+          socketTimeout: 15000,
         });
 
         const mailOptions = {
