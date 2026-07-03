@@ -211,10 +211,14 @@ export function ChatConversationPage() {
     }));
 
     try {
-      const response = await fetch(`/api/chats/${id}/messages`, {
+      const isProd = typeof process !== 'undefined' && process.env?.NODE_ENV === 'production' || (import.meta as any).env?.PROD;
+      const apiBaseUrl = isProd ? 'https://rag-backend-zy02.onrender.com/api' : '/api';
+
+      const response = await fetch(`${apiBaseUrl}/chats/${id}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream, application/json', // Inform backend we prefer stream but accept JSON fallback
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ content: userMessage }),
@@ -222,6 +226,18 @@ export function ChatConversationPage() {
 
       if (!response.ok) throw new Error('Failed to send message');
 
+      const contentType = response.headers.get('content-type');
+      
+      // If server falls back to static JSON response (due to proxy block)
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        setStreamingContent(data.content || '');
+        queryClient.invalidateQueries({ queryKey: ['chat', id] });
+        queryClient.invalidateQueries({ queryKey: ['chats'] });
+        return;
+      }
+
+      // Standard SSE stream response reader
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';

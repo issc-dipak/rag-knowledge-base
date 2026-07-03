@@ -121,6 +121,76 @@ export class ChatService {
     const systemPrompt = this.buildSystemPrompt(searchResults);
     const messages = await this.buildMessageHistory(chatId, content);
 
+    // Detect if client accepts event-stream or wants static JSON (useful for Render free proxy bypass)
+    const clientAcceptsStream = res.req.headers['accept']?.includes('text/event-stream');
+
+    if (!clientAcceptsStream) {
+      // Non-streaming static fallback logic
+      try {
+        const completion = await this.openai.chat.completions.create({
+          model: chat.model || this.config.get('OPENAI_MODEL', 'gpt-4o'),
+          temperature: chat.temperature || 0.1,
+          max_tokens: chat.maxTokens || 4096,
+          stream: false,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages,
+          ],
+        });
+
+        const fullResponse = completion.choices[0]?.message?.content || '';
+        const totalTokens = completion.usage?.total_tokens || 0;
+        
+        const sources = searchResults.map((r) => ({
+          documentId: r.documentId,
+          documentName: r.documentName,
+          pageNumber: r.pageNumber,
+          score: r.score,
+          excerpt: r.content.substring(0, 200),
+        }));
+
+        const cost = (totalTokens / 1000) * 0.005;
+        const assistantMessage = await this.prisma.message.create({
+          data: {
+            chatId,
+            role: 'ASSISTANT',
+            content: fullResponse,
+            sources: sources as any,
+            tokensUsed: totalTokens,
+            cost,
+            model: chat.model,
+          },
+        });
+
+        await this.prisma.chat.update({
+          where: { id: chatId },
+          data: {
+            totalTokens: { increment: totalTokens },
+            totalCost: { increment: cost },
+            updatedAt: new Date(),
+            title: chat.title === 'New Chat'
+              ? content.substring(0, 60) + (content.length > 60 ? '...' : '')
+              : undefined,
+          },
+        });
+
+        res.setHeader('Content-Type', 'application/json');
+        res.json({
+          type: 'done',
+          messageId: assistantMessage.id,
+          content: fullResponse,
+          sources,
+          tokensUsed: totalTokens,
+          cost,
+        });
+        return;
+      } catch (error) {
+        this.logger.error(`Non-streaming completion error: ${error.message}`);
+        res.status(500).json({ error: error.message });
+        return;
+      }
+    }
+
     // Start SSE streaming
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
