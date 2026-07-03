@@ -72,20 +72,14 @@ export function ForgotPasswordPage() {
           </button>
         </form>
       ) : (
-        <div className="text-center py-4 space-y-4 bg-primary/5 border border-primary/20 rounded-xl px-4">
-          <CheckCircle className="w-12 h-12 text-primary mx-auto" />
+        <div className="text-center py-6 space-y-4 bg-primary/5 border border-primary/20 rounded-xl px-4">
+          <CheckCircle className="w-12 h-12 text-primary mx-auto animate-pulse" />
           <div>
-            <h3 className="font-semibold text-foreground">Verification Sent!</h3>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h3 className="font-semibold text-foreground text-lg">Verification Sent!</h3>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
               For local testing and offline modes, use the generated reset link below to update your password:
             </p>
           </div>
-          
-          {resetUrl && (
-            <div className="mt-3 p-3 bg-secondary rounded-lg border border-border select-all break-all text-xs font-mono text-left">
-              <a href={resetUrl} className="text-primary hover:underline">{resetUrl}</a>
-            </div>
-          )}
         </div>
       )}
 
