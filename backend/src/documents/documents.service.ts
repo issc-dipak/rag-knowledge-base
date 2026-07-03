@@ -308,11 +308,16 @@ Respond ONLY with valid JSON, no markdown.`,
     const skip = (pageNum - 1) * limitNum;
 
     // Verify workspace membership first to prevent unauthorized access
-    const membership = await this.prisma.workspace.findFirst({
-      where: { id: workspaceId, members: { some: { userId } } },
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId },
     });
     if (!membership) {
-      throw new ForbiddenException('Access denied to this workspace');
+      const isOwner = await this.prisma.workspace.findFirst({
+        where: { id: workspaceId, ownerId: userId },
+      });
+      if (!isOwner) {
+        throw new ForbiddenException('Access denied to this workspace');
+      }
     }
 
     const where: any = { workspaceId };
