@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { FileText, MessageSquare, HardDrive, TrendingUp, Upload, Clock, Zap, DollarSign } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { usersApi, documentsApi, chatApi } from '@/services/api';
+import { usersApi, documentsApi, chatApi, workspacesApi } from '@/services/api';
 import { useAuthStore } from '@/store/auth.store';
 import { useWorkspaceStore } from '@/store/workspace.store';
 import { formatBytes, formatRelativeTime, getFileIcon, getStatusBadgeClass } from '@/utils/helpers';
@@ -21,27 +21,37 @@ export function DashboardPage() {
   const navigate = useNavigate();
 
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['user-stats'],
-    queryFn: () => usersApi.getStats().then((r) => r.data),
+    queryKey: ['workspace-stats', currentWorkspace?.id],
+    queryFn: () =>
+      currentWorkspace
+        ? workspacesApi.getStats(currentWorkspace.id).then((r) => r.data)
+        : Promise.resolve({ documentCount: 0, chatCount: 0, storageUsed: 0, totalCost: 0 }),
+    enabled: !!currentWorkspace,
   });
 
-  const { data: recentDocs, isLoading: docsLoading } = useQuery({
+  const { data: recentDocs = [], isLoading: docsLoading } = useQuery({
     queryKey: ['recent-documents', currentWorkspace?.id],
     queryFn: () =>
       currentWorkspace
-        ? documentsApi.getAll({ workspaceId: currentWorkspace.id, limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }).then((r) => r.data.data)
+        ? documentsApi.getAll({ workspaceId: currentWorkspace.id, limit: 5, sortBy: 'createdAt', sortOrder: 'desc' })
+            .then((r) => Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [])
+            .catch(() => [])
         : Promise.resolve([]),
     enabled: !!currentWorkspace,
   });
 
-  const { data: recentChats, isLoading: chatsLoading } = useQuery({
+  const { data: recentChats = [], isLoading: chatsLoading } = useQuery({
     queryKey: ['recent-chats', currentWorkspace?.id],
     queryFn: () =>
       currentWorkspace
-        ? chatApi.getAll({ workspaceId: currentWorkspace.id, limit: 5 }).then((r) => r.data.data)
+        ? chatApi.getAll({ workspaceId: currentWorkspace.id, limit: 5 })
+            .then((r) => Array.isArray(r.data?.data) ? r.data.data : Array.isArray(r.data) ? r.data : [])
+            .catch(() => [])
         : Promise.resolve([]),
     enabled: !!currentWorkspace,
   });
+
+  const chatsRef = import.meta.env ? (window as any).useRef?.() || { current: null } : { current: null };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -87,23 +97,48 @@ export function DashboardPage() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        {[
-          { label: 'Upload Document', icon: Upload, to: '/documents', color: 'bg-blue-500' },
-          { label: 'New Chat', icon: MessageSquare, to: '/chat', color: 'bg-purple-500' },
-          { label: 'Search Docs', icon: Zap, to: '/search', color: 'bg-amber-500' },
-          { label: 'View History', icon: Clock, to: '/chat', color: 'bg-green-500' },
-        ].map(({ label, icon: Icon, to, color }) => (
-          <Link
-            key={label}
-            to={to}
-            className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
-          >
-            <div className={`w-8 h-8 ${color} rounded-lg flex items-center justify-center shrink-0`}>
-              <Icon className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-sm font-medium group-hover:text-primary transition-colors">{label}</span>
-          </Link>
-        ))}
+        <Link
+          to="/documents"
+          className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
+        >
+          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shrink-0">
+            <Upload className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-sm font-medium group-hover:text-primary transition-colors">Upload Document</span>
+        </Link>
+        
+        <Link
+          to="/chat"
+          className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
+        >
+          <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center shrink-0">
+            <MessageSquare className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-sm font-medium group-hover:text-primary transition-colors">New Chat</span>
+        </Link>
+
+        <Link
+          to="/search"
+          className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all group"
+        >
+          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-sm font-medium group-hover:text-primary transition-colors">Search Docs</span>
+        </Link>
+
+        <button
+          onClick={() => {
+            const el = document.getElementById('recent-chats-panel');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
+          className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-primary/5 transition-all text-left w-full group"
+        >
+          <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center shrink-0">
+            <Clock className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-sm font-medium group-hover:text-primary transition-colors">View History</span>
+        </button>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -153,6 +188,7 @@ export function DashboardPage() {
 
         {/* Recent Chats */}
         <motion.div
+          id="recent-chats-panel"
           initial={{ opacity: 0, x: 10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}

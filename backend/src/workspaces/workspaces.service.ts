@@ -95,13 +95,15 @@ export class WorkspacesService {
 
   async getStats(workspaceId: string, userId: string) {
     await this.findById(workspaceId, userId);
-    const [docCount, chatCount, docStats] = await Promise.all([
+    const [docCount, chatCount, docStats, chatsCost] = await Promise.all([
       this.prisma.document.count({ where: { workspaceId } }),
       this.prisma.chat.count({ where: { workspaceId } }),
       this.prisma.document.findMany({ where: { workspaceId }, select: { size: true } }),
+      this.prisma.chat.findMany({ where: { workspaceId }, select: { totalCost: true } }),
     ]);
     const storageUsed = docStats.reduce((acc, d) => acc + Number(d.size), 0);
-    return { documentCount: docCount, chatCount, storageUsed };
+    const totalCost = chatsCost.reduce((acc, c) => acc + (c.totalCost || 0), 0);
+    return { documentCount: docCount, chatCount, storageUsed, totalCost };
   }
 
   private async checkOwner(workspaceId: string, userId: string) {

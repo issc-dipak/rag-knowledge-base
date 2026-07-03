@@ -279,10 +279,20 @@ Respond ONLY with valid JSON, no markdown.`,
       sortOrder?: 'asc' | 'desc';
     } = {},
   ) {
-    const { page = 1, limit = 20, search, fileType, status, tags, sortBy = 'createdAt', sortOrder = 'desc' } = options;
-    const skip = (page - 1) * limit;
+    const pageNum = isNaN(Number(options?.page)) || Number(options?.page) < 1 ? 1 : Number(options.page);
+    const limitNum = isNaN(Number(options?.limit)) || Number(options?.limit) < 1 ? 20 : Number(options.limit);
+    const skip = (pageNum - 1) * limitNum;
 
-    const where: any = { workspaceId, userId };
+    // Verify workspace membership first to prevent unauthorized access
+    const membership = await this.prisma.workspace.findFirst({
+      where: { id: workspaceId, members: { some: { userId } } },
+    });
+    if (!membership) {
+      throw new ForbiddenException('Access denied to this workspace');
+    }
+
+    const where: any = { workspaceId };
+    const { search, fileType, status, tags, sortBy = 'createdAt', sortOrder = 'desc' } = options;
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -299,7 +309,7 @@ Respond ONLY with valid JSON, no markdown.`,
       this.prisma.document.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: { [sortBy]: sortOrder },
         select: {
           id: true, name: true, originalName: true, fileType: true, mimeType: true,
@@ -313,7 +323,7 @@ Respond ONLY with valid JSON, no markdown.`,
 
     return {
       data: documents.map((d) => ({ ...d, size: Number(d.size) })),
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      meta: { total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) },
     };
   }
 
