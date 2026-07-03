@@ -230,10 +230,12 @@ export class AuthService {
           `,
         };
 
-        await transporter.sendMail(mailOptions);
-        this.logger.log(`Password reset email successfully sent to ${email}`);
+        // Send mail asynchronously in the background to prevent SMTP socket hangs from blocking NestJS thread
+        transporter.sendMail(mailOptions)
+          .then(() => this.logger.log(`Password reset email successfully sent to ${email}`))
+          .catch((err) => this.logger.error(`Failed to send password reset email background: ${err.message}`));
       } catch (err: any) {
-        this.logger.error(`Failed to send password reset email: ${err.message}`);
+        this.logger.error(`Failed to initialize transporter: ${err.message}`);
       }
     } else {
       this.logger.warn('SMTP configuration is missing. Password reset email skipped.');
