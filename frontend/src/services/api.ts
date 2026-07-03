@@ -2,7 +2,10 @@ import axios from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
 const api = axios.create({
-  baseURL: '/api',
+  // Dynamically points to Render backend in production, fallbacks to local proxy in dev
+  baseURL: import.meta.env.PROD 
+    ? 'https://rag-backend-zy02.onrender.com/api' 
+    : '/api',
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 });
