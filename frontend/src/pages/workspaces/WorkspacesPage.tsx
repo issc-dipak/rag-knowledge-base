@@ -1,12 +1,53 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { Plus, Users, FileText, MessageSquare, Trash2, Settings, Crown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Users, FileText, MessageSquare, Trash2, Settings, Crown, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { workspacesApi } from '@/services/api';
 import { useWorkspaceStore } from '@/store/workspace.store';
 import { useAuthStore } from '@/store/auth.store';
 import { cn, formatRelativeTime } from '@/utils/helpers';
 import toast from 'react-hot-toast';
+
+function DeleteConfirmationModal({ workspaceName, onClose, onConfirm }: any) {
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl"
+      >
+        <div className="flex gap-4">
+          <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-6 h-6 text-red-500" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg text-foreground mb-1">Delete Workspace</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Are you sure you want to delete <span className="font-medium text-foreground">"{workspaceName}"</span>? 
+              This action cannot be undone. All documents, index vector points, and chats will be permanently deleted.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 justify-end mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-accent border border-border transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
+          >
+            Delete Workspace
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
 function CreateWorkspaceModal({ onClose, onCreate }: any) {
   const [name, setName] = useState('');
@@ -58,6 +99,7 @@ export function WorkspacesPage() {
   const { currentWorkspace, setCurrentWorkspace, setWorkspaces } = useWorkspaceStore();
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
+  const [deletingWorkspace, setDeletingWorkspace] = useState<any>(null);
 
   const { data: workspaces, isLoading } = useQuery({
     queryKey: ['workspaces'],
@@ -134,9 +176,7 @@ export function WorkspacesPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`Delete "${ws.name}"? This will delete all documents and chats.`)) {
-                        deleteMutation.mutate(ws.id);
-                      }
+                      setDeletingWorkspace(ws);
                     }}
                     className="p-1.5 opacity-0 group-hover:opacity-100 rounded-lg hover:bg-red-500/10 hover:text-red-500 text-muted-foreground transition-all"
                   >
@@ -170,12 +210,25 @@ export function WorkspacesPage() {
         </div>
       )}
 
-      {creating && (
-        <CreateWorkspaceModal
-          onClose={() => setCreating(false)}
-          onCreate={(data: any) => createMutation.mutate(data)}
-        />
-      )}
+      <AnimatePresence>
+        {creating && (
+          <CreateWorkspaceModal
+            onClose={() => setCreating(false)}
+            onCreate={(data: any) => createMutation.mutate(data)}
+          />
+        )}
+
+        {deletingWorkspace && (
+          <DeleteConfirmationModal
+            workspaceName={deletingWorkspace.name}
+            onClose={() => setDeletingWorkspace(null)}
+            onConfirm={() => {
+              deleteMutation.mutate(deletingWorkspace.id);
+              setDeletingWorkspace(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

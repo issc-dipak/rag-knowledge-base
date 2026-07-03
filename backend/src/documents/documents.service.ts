@@ -91,6 +91,14 @@ export class DocumentsService {
       backoff: { type: 'exponential', delay: 2000 },
     });
 
+    // In production, execute processing directly in the background to handle Render sleep issues
+    if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+      this.logger.log(`Directly triggering document processing in background: ${document.id}`);
+      this.processDocument(document.id).catch((err) => {
+        this.logger.error(`Background document processing failed: ${err.message}`);
+      });
+    }
+
     return { ...document, size: Number(document.size) };
   }
 
@@ -127,6 +135,13 @@ export class DocumentsService {
         });
 
         await this.documentQueue.add('process-document', { documentId: document.id });
+        
+        if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+          this.processDocument(document.id).catch((err) => {
+            this.logger.error(`Background zip-file processing failed: ${err.message}`);
+          });
+        }
+        
         documents.push({ ...document, size: Number(document.size) });
       }
     }
