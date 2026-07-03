@@ -10,6 +10,8 @@ import { AuthLayout } from '@/components/layout/AuthLayout';
 // Auth pages
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 
 // App pages
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
@@ -55,6 +57,8 @@ export default function App() {
         <Route element={<AuthLayout />}>
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Route>
 
         {/* App routes */}

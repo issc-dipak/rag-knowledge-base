@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   ConflictException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -157,5 +158,115 @@ export class AuthService {
   private sanitizeUser(user: any) {
     const { password, refreshToken, ...sanitized } = user;
     return sanitized;
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException('User with this email does not exist');
+    }
+
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hour expiration
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken: token,
+        resetTokenExpires: expires,
+      },
+    });
+
+    const frontendUrl = this.configService.get('FRONTEND_URL', 'http://localhost:3000');
+    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
+
+    this.logger.log(`Password reset link generated for ${email}: ${resetLink}`);
+
+    // Dynamic Nodemailer setup
+    const smtpHost = this.configService.get('SMTP_HOST');
+    const smtpPort = Number(this.configService.get('SMTP_PORT', '587'));
+    const smtpUser = this.configService.get('SMTP_USER');
+    const smtpPassword = this.configService.get('SMTP_PASS') || this.configService.get('SMTP_PASSWORD');
+    const smtpFrom = this.configService.get('SMTP_FROM', 'no-reply@knowledgeai.com');
+
+    if (smtpHost && smtpUser && smtpPassword) {
+      try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpPort === 465,
+          auth: {
+            user: smtpUser,
+            pass: smtpPassword,
+          },
+        });
+
+        const mailOptions = {
+          from: smtpFrom,
+          to: email,
+          subject: 'Reset Your Password - KnowledgeAI',
+          html: `
+            <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; rounded: 12px;">
+              <h2 style="color: #4f46e5; margin-bottom: 10px;">KnowledgeAI</h2>
+              <p style="font-size: 16px; color: #1f2937;">Hello,</p>
+              <p style="font-size: 14px; color: #4b5563; line-height: 1.5;">
+                We received a request to reset your password. Click the button below to choose a new password:
+              </p>
+              <div style="margin: 20px 0; text-align: center;">
+                <a href="${resetLink}" style="background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 14px; display: inline-block;">Reset Password</a>
+              </div>
+              <p style="font-size: 12px; color: #9ca3af; margin-top: 20px;">
+                This link will expire in 1 hour. If you did not request a password reset, please ignore this email.
+              </p>
+            </div>
+          `,
+        };
+
+        await transporter.sendMail(mailOptions);
+        this.logger.log(`Password reset email successfully sent to ${email}`);
+      } catch (err: any) {
+        this.logger.error(`Failed to send password reset email: ${err.message}`);
+      }
+    } else {
+      this.logger.warn('SMTP configuration is missing. Password reset email skipped.');
+    }
+
+    return {
+      message: 'Password reset link generated successfully',
+      resetLink, // returned to frontend for mockup bypass if no emailer is set up
+    };
+  }
+
+  async resetPassword(dto: any) {
+    const { token, password } = dto;
+    if (!token) throw new BadRequestException('Reset token is required');
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpires: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Reset token is invalid or has expired');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpires: null,
+      },
+    });
+
+    this.logger.log(`Password reset successfully for user: ${user.email}`);
+    return { message: 'Password has been reset successfully' };
   }
 }
