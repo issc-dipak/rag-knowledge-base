@@ -70,17 +70,17 @@ function MessageBubble({ message, isStreaming }: { message: Message; isStreaming
         {isUser ? <User className="w-4 h-4 text-primary" /> : <Bot className="w-4 h-4 text-foreground" />}
       </div>
 
-      <div className={cn('max-w-[80%] space-y-1', isUser ? 'items-end' : 'items-start', 'flex flex-col')}>
+      <div className={cn('max-w-[95%] md:max-w-[85%] space-y-1 min-w-0', isUser ? 'items-end' : 'items-start', 'flex flex-col')}>
         <div className={cn(
-          'px-4 py-3 rounded-2xl text-sm leading-relaxed',
+          'px-4 py-3 rounded-2xl text-sm leading-relaxed max-w-full overflow-x-auto',
           isUser
             ? 'bg-primary text-primary-foreground rounded-tr-sm'
             : 'bg-card border border-border rounded-tl-sm',
         )}>
           {isUser ? (
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            <p className="whitespace-pre-wrap break-words">{message.content}</p>
           ) : (
-            <div className={cn('chat-prose', isStreaming && 'typing-cursor')}>
+            <div className={cn('chat-prose break-words max-w-full', isStreaming && 'typing-cursor')}>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -95,7 +95,7 @@ function MessageBubble({ message, isStreaming }: { message: Message; isStreaming
                           style={oneDark as any}
                           language={match[1]}
                           PreTag="div"
-                          className="!rounded-lg !text-xs"
+                          className="!rounded-lg !text-xs !max-w-full"
                           {...props}
                         >
                           {String(children).replace(/\n$/, '')}
