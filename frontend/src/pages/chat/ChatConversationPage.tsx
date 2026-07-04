@@ -441,56 +441,59 @@ export function ChatConversationPage() {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-border p-4 shrink-0">
+      <div className="border-t border-border p-4 bg-background/50 backdrop-blur-xl shrink-0 sticky bottom-0">
         <div className="max-w-4xl mx-auto">
-          <div className="flex gap-2 items-end bg-secondary border border-border rounded-xl p-2">
+          <div className="relative flex items-end gap-2 bg-card border border-border shadow-sm hover:shadow-md transition-shadow rounded-2xl p-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
             <textarea
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask a question about your documents..."
+              placeholder="Ask a question..."
               rows={1}
-              style={{ resize: 'none', minHeight: '40px', maxHeight: '160px' }}
-              className="flex-1 bg-transparent text-sm focus:outline-none px-2 py-1.5 placeholder:text-muted-foreground"
+              style={{ resize: 'none', maxHeight: '160px' }}
+              className="flex-1 bg-transparent text-sm sm:text-[15px] focus:outline-none px-4 py-3 placeholder:text-muted-foreground/70 leading-relaxed custom-scrollbar overflow-hidden"
               onInput={(e) => {
                 const el = e.currentTarget;
                 el.style.height = 'auto';
                 el.style.height = Math.min(el.scrollHeight, 160) + 'px';
               }}
             />
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0 px-1 pb-1">
               <button
                 onClick={startListening}
                 className={cn(
-                  'p-2 rounded-lg transition-all',
-                  isListening ? 'bg-red-500 text-white' : 'text-muted-foreground hover:bg-accent',
+                  'p-2.5 rounded-xl transition-all',
+                  isListening 
+                    ? 'bg-red-500 text-white shadow-sm' 
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                 )}
                 title="Voice input"
               >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
               {isStreaming ? (
                 <button
                   onClick={() => abortRef.current?.()}
-                  className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all"
-                  title="Stop"
+                  className="p-2.5 rounded-xl bg-red-500 text-white shadow-sm hover:bg-red-600 transition-all flex items-center justify-center"
+                  title="Stop generating"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-5 h-5 animate-spin-slow" />
                 </button>
               ) : (
                 <button
                   onClick={sendMessage}
                   disabled={!input.trim()}
-                  className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="p-2.5 rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                  title="Send message"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-5 h-5" />
                 </button>
               )}
             </div>
           </div>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Press Enter to send · Shift+Enter for new line · Answers grounded in your documents
+          <p className="text-[11px] text-muted-foreground/60 text-center mt-3 font-medium tracking-wide">
+            Press Enter to send · Shift+Enter for new line
           </p>
         </div>
       </div>
