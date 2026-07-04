@@ -206,6 +206,9 @@ export class AuthService {
           tls: {
             rejectUnauthorized: false,
           },
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 5000,
         });
 
         const mailOptions = {
@@ -229,11 +232,12 @@ export class AuthService {
           `,
         };
 
-        // Await the email sending to ensure it completes before the serverless function terminates
-        await transporter.sendMail(mailOptions);
-        this.logger.log(`Password reset email successfully sent to ${email}`);
+        // Send asynchronously again so Render doesn't hang the API response if the SMTP connection is blocked
+        transporter.sendMail(mailOptions)
+          .then(() => this.logger.log(`Password reset email successfully sent to ${email}`))
+          .catch((err) => this.logger.error(`Failed to send password reset email background: ${err.message}`));
       } catch (err: any) {
-        this.logger.error(`Failed to send password reset email or initialize transporter: ${err.message}`);
+        this.logger.error(`Failed to initialize transporter: ${err.message}`);
       }
     } else {
       this.logger.warn('SMTP configuration is missing. Password reset email skipped.');
