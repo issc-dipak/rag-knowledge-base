@@ -12,6 +12,7 @@ export function ChatPage() {
   const { currentWorkspace } = useWorkspaceStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [chatToDelete, setChatToDelete] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['chats', currentWorkspace?.id],
@@ -106,7 +107,7 @@ export function ChatPage() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm('Delete this conversation?')) deleteMutation.mutate(chat.id);
+                  setChatToDelete(chat.id);
                 }}
                 className="p-2 opacity-0 group-hover:opacity-100 rounded-lg hover:bg-red-500/10 hover:text-red-500 text-muted-foreground transition-all"
               >
@@ -114,6 +115,39 @@ export function ChatPage() {
               </button>
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {chatToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md p-6 bg-card border border-border rounded-xl shadow-xl"
+          >
+            <h2 className="text-xl font-bold mb-2">Delete Conversation?</h2>
+            <p className="text-muted-foreground mb-6">
+              Are you sure you want to delete this conversation? This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setChatToDelete(null)}
+                className="px-4 py-2 rounded-lg font-medium hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  deleteMutation.mutate(chatToDelete);
+                  setChatToDelete(null);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>
